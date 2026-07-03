@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: todoapp_db
+    environment:
+      POSTGRES_USER: vivi
+      POSTGRES_PASSWORD: vivi
+      POSTGRES_DB: my_database
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  web:
+    build: .
+    container_name: todoapp_app
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/code
+    environment:
+      - DATABASE_URL=postgresql://vivi:vivi@db:5432/my_database
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:

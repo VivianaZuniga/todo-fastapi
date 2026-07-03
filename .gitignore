@@ -1,0 +1,11 @@
+fastapienv/
+venv/
+.env
+/Ejemplos viejos/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+*.db
+*.sqlite3
