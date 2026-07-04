@@ -8,9 +8,13 @@ import models
 from models import Todos
 from database import engine, SessionLocal
 
+from routers import auth
+
 app = FastAPI()
 
 models.Base.metadata.create_all(bind=engine)
+
+app.include_router(auth.router)
 
 def get_db():
     db = SessionLocal()
@@ -75,5 +79,5 @@ async def delete_todo(db: db_dependency, todo_id: int = Path(gt=0)):
         raise HTTPException(status_code=404, detail="Todo not found")
     
     db.query(Todos).filter(Todos.id == todo_id).delete()
-    
+
     db.commit()
