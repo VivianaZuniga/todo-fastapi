@@ -1,12 +1,26 @@
-from fastapi import APIRouter
+from datetime import datetime, timedelta, timezone
+from http.client import HTTPException
+from typing_extensions import Annotated
+from database import db_dependency
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from models import Users
 from passlib.context import CryptContext
-from .todos import db_dependency
+from starlette import status
+from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
+from jose import jwt, JWTError
 
-router = APIRouter()
+router = APIRouter(
+    prefix= '/auth',
+    tags=['auth'],
+)
+
+SECRET_KEY = 'da185710d0c20d9a70f42cae287f897516b3ffbc7f46c47c0870af63be61e1bb'
+ALGORITHM = 'HS256'
 
 bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+oauth2_bearer = OAuth2PasswordBearer(tokenUrl="auth/token")
+
 
 class CreateUserRequest(BaseModel):
     username: str
@@ -16,8 +30,42 @@ class CreateUserRequest(BaseModel):
     password: str
     role: str
 
-@router.post("/auth")
-async def create_user(create_user_request: CreateUserRequest, db: db_dependency):
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+
+def authenticate_user(username: str, password: str, db):
+    user = db.query(Users).filter(Users.username == username).first()
+    if not user:
+        return False
+    if not bcrypt_context.verify(password, user.hashed_password):
+        return False
+    return user
+
+
+def create_acces_token(user: str, user_id: int, expires_delta: timedelta):
+    encode = {"sub": user, "id": user_id}
+    expires = datetime.now(timezone.utc) + expires_delta
+    encode.update({"exp": expires})
+    return jwt.encode(encode, SECRET_KEY, algorithm=ALGORITHM)
+
+
+def get_current_user(token: Annotated[str, Depends(oauth2_bearer)]):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get('sub')
+        user_id: int = payload.get('id')
+        if username is None or user_id is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+        return {"username": username, "id": user_id}
+    except JWTError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate user")
+
+
+@router.post("/", status_code=status.HTTP_201_CREATED)
+async def create_user(db: db_dependency, 
+                      create_user_request: CreateUserRequest):
     create_user_model = Users(
         username=create_user_request.username,
         email=create_user_request.email,
@@ -32,3 +80,14 @@ async def create_user(create_user_request: CreateUserRequest, db: db_dependency)
     db.refresh(create_user_model)
 
     return create_user_model
+
+
+@router.post("/token", response_model=Token)
+async def login_for_access_token(db: db_dependency, 
+                                 form_data: OAuth2PasswordRequestForm = Depends()):
+    user = authenticate_user(form_data.username, form_data.password, db)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    
+    token = create_acces_token(user.username, user.id, timedelta(minutes=20))
+    return {'access_token': token, 'token_type': 'bearer'}
