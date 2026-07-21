@@ -29,6 +29,7 @@ class CreateUserRequest(BaseModel):
     last_name: str
     password: str
     role: str
+    phone_number: str
 
 class Token(BaseModel):
     access_token: str
@@ -44,8 +45,8 @@ def authenticate_user(username: str, password: str, db):
     return user
 
 
-def create_acces_token(user: str, user_id: int, expires_delta: timedelta):
-    encode = {"sub": user, "id": user_id}
+def create_acces_token(user: str, user_id: int, role: str, expires_delta: timedelta):
+    encode = {"sub": user, "id": user_id, "role": role}
     expires = datetime.now(timezone.utc) + expires_delta
     encode.update({"exp": expires})
     return jwt.encode(encode, SECRET_KEY, algorithm=ALGORITHM)
@@ -56,9 +57,10 @@ def get_current_user(token: Annotated[str, Depends(oauth2_bearer)]):
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get('sub')
         user_id: int = payload.get('id')
+        user_role: str = payload.get('role')
         if username is None or user_id is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
-        return {"username": username, "id": user_id}
+        return {'username': username, 'id': user_id, 'role': user_role}
     except JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate user")
 
@@ -73,7 +75,8 @@ async def create_user(db: db_dependency,
         last_name=create_user_request.last_name,
         hashed_password=bcrypt_context.hash(create_user_request.password),
         role=create_user_request.role,
-        is_active=True
+        is_active=True,
+        phone_number=create_user_request.phone_number
     )
     db.add(create_user_model)  
     db.commit()               
@@ -89,5 +92,5 @@ async def login_for_access_token(db: db_dependency,
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
     
-    token = create_acces_token(user.username, user.id, timedelta(minutes=20))
+    token = create_acces_token(user.username, user.id, user.role, timedelta(minutes=20))
     return {'access_token': token, 'token_type': 'bearer'}
