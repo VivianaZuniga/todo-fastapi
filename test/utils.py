@@ -57,10 +57,10 @@ def test_todo():
 @pytest.fixture
 def test_user():
     user = Users(
-        email = "viv@gmail.com",
-        username = "Vivi",
-        fisrt_name = "Viviana", 
-        last_name = "Zuniga",
+        email = "vivi@gmail.com",
+        username = "vivi",
+        first_name = "viviana", 
+        last_name = "zuniga",
         hashed_password = bcrypt_context.hash("testpassword"),
         is_active = True,
         role = "admin",
