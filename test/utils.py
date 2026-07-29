@@ -3,10 +3,11 @@ from sqlalchemy.pool import StaticPool
 from sqlalchemy.orm import sessionmaker
 from database import Base
 from main import app
-from models import Todos
+from models import Todos, Users
 from fastapi.testclient import TestClient
 from sqlalchemy import text
 import pytest
+from routers.auth import bcrypt_context
 
 
 SQLALCHEMY_DATABASE_URL = "sqlite:///./testdb.db"
@@ -52,3 +53,24 @@ def test_todo():
         connection.execute(text("DELETE FROM todos;"))
         connection.commit()
 
+
+@pytest.fixture
+def test_user():
+    user = Users(
+        email = "viv@gmail.com",
+        username = "Vivi",
+        fisrt_name = "Viviana", 
+        last_name = "Zuniga",
+        hashed_password = bcrypt_context.hash("testpassword"),
+        is_active = True,
+        role = "admin",
+        phone_number = "7821211866"
+    )
+
+    db = TestingSessionLocal()
+    db.add(user)
+    db.commit()
+    yield user
+    with engine.connect() as connection:
+        connection.execute(text("DELETE FROM users;"))
+        connection.commit()
