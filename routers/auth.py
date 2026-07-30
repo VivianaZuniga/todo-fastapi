@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from http.client import HTTPException
+from fastapi import HTTPException
 from typing_extensions import Annotated
 from database import db_dependency
 from fastapi import APIRouter, Depends
@@ -9,13 +9,17 @@ from passlib.context import CryptContext
 from starlette import status
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from jose import jwt, JWTError
+from dotenv import load_dotenv
+import os
 
 router = APIRouter(
     prefix= '/auth',
     tags=['auth'],
 )
 
-SECRET_KEY = 'da185710d0c20d9a70f42cae287f897516b3ffbc7f46c47c0870af63be61e1bb'
+load_dotenv()
+
+SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = 'HS256'
 
 bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -52,14 +56,14 @@ def create_access_token(user: str, user_id: int, role: str, expires_delta: timed
     return jwt.encode(encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
-def get_current_user(token: Annotated[str, Depends(oauth2_bearer)]):
+async def get_current_user(token: Annotated[str, Depends(oauth2_bearer)]):
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload =  jwt.decode(token,SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get('sub')
         user_id: int = payload.get('id')
         user_role: str = payload.get('role')
         if username is None or user_id is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate user")
         return {'username': username, 'id': user_id, 'role': user_role}
     except JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate user")
