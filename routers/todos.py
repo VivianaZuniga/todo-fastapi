@@ -7,7 +7,10 @@ from .auth import get_current_user
 from typing_extensions import Annotated
 
 
-router = APIRouter()
+router = APIRouter(
+    prefix='/todos',
+    tags=['todos']
+)
 
 user_dependency = Annotated[dict, Depends(get_current_user)] 
 
