@@ -1,14 +1,26 @@
-from typing import Annotated
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 import models
 from database import engine
-
 from routers import auth, todos, admin, users
+from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
 
 app = FastAPI()
 
 models.Base.metadata.create_all(bind=engine)
 
+templates =Jinja2Templates(directory="templates")
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+
+@app.get("/")
+def test(request: Request):
+    return templates.TemplateResponse(
+        request=request,
+        name="home.html",
+        context={"request": request}
+    )
 
 @app.get("/healthy")
 def health_check():
