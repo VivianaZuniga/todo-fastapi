@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from fastapi import HTTPException
+from fastapi import HTTPException, Request
 from typing_extensions import Annotated
 from database import db_dependency
 from fastapi import APIRouter, Depends
@@ -11,6 +11,7 @@ from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from jose import jwt, JWTError
 from dotenv import load_dotenv
 import os
+from fastapi.templating import Jinja2Templates
 
 router = APIRouter(
     prefix= '/auth',
@@ -39,6 +40,19 @@ class Token(BaseModel):
     access_token: str
     token_type: str
 
+templates = Jinja2Templates(directory="templates")
+
+#Pages
+
+@router.get("/login-page")
+def render_login_page(request: Request):
+    return templates.TemplateResponse(
+        request=request,
+        name="login.html",
+        context={"request": request}
+    )
+
+#Endpoints
 
 def authenticate_user(username: str, password: str, db):
     user = db.query(Users).filter(Users.username == username).first()

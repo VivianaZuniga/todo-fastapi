@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">    
+    <head>
+        <link rel="stylesheet" type="text/css" href="{{url_for('static', path='/css/base.css')}}">
+        <link rel="stylesheet" type="text/css" href="{{url_for('static', path='/css/bootstrap.css')}}">
+
+        <meta charset="UTF-8">
+        <title>TodoApp</title>
+    </head>
+    <body>
+        <div class="container">
+            <div class="card">
+                <div class="card-header">
+                    <h1>Login</h1>
+                </div>
+                <div class="card-body">
+                    <form id="loginForm">
+                        <div class="form-group">
+                            <label>Username</label>
+                            <input type="text" class="form-control" name="username" autocomplete="username" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Password</label>
+                            <input type="password" class="form-control" name="password" autocomplete="current-password" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Login</button>
+                    </form>
+                </div>
+                <div class="card-footer" text-muted>
+                    <p>Don't have an account? <a href="/auth/login-page">Register here</a></p>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>
