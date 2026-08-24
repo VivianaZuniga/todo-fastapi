@@ -47,6 +47,23 @@ async def render_todo_page(request: Request, db: db_dependency):
     except:
         return redirect_to_login()
 
+
+@router.get('/add-todo-page')
+async def render_todo_page(request: Request):
+    try:
+        user = await get_current_user(request.cookies.get('access_token'))
+
+        if user is None:
+            return redirect_to_login()
+
+        return templates.TemplateResponse(
+            request=request,
+            name="add-todo.html",
+            context={"request": request, "user": user}
+        )
+    except:
+        return redirect_to_login()
+
 #Endpoints
 @router.get("/")
 async def read_all(user: user_dependency, db: db_dependency):
