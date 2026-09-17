@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from http.client import HTTPException
+from fastapi import HTTPException, Request
 from typing_extensions import Annotated
 from database import db_dependency
 from fastapi import APIRouter, Depends
@@ -9,13 +9,18 @@ from passlib.context import CryptContext
 from starlette import status
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from jose import jwt, JWTError
+from dotenv import load_dotenv
+import os
+from fastapi.templating import Jinja2Templates
 
 router = APIRouter(
     prefix= '/auth',
     tags=['auth'],
 )
 
-SECRET_KEY = 'da185710d0c20d9a70f42cae287f897516b3ffbc7f46c47c0870af63be61e1bb'
+load_dotenv()
+
+SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = 'HS256'
 
 bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -35,6 +40,27 @@ class Token(BaseModel):
     access_token: str
     token_type: str
 
+templates = Jinja2Templates(directory="templates")
+
+#Pages
+
+@router.get("/login-page")
+def render_login_page(request: Request):
+    return templates.TemplateResponse(
+        request=request,
+        name="login.html",
+        context={"request": request}
+    )
+
+@router.get("/register-page")
+def render_register_page(request: Request):
+    return templates.TemplateResponse(
+        request=request,
+        name="register.html",
+        context={"request": request}
+    )
+
+#Endpoints
 
 def authenticate_user(username: str, password: str, db):
     user = db.query(Users).filter(Users.username == username).first()
@@ -45,21 +71,21 @@ def authenticate_user(username: str, password: str, db):
     return user
 
 
-def create_acces_token(user: str, user_id: int, role: str, expires_delta: timedelta):
+def create_access_token(user: str, user_id: int, role: str, expires_delta: timedelta):
     encode = {"sub": user, "id": user_id, "role": role}
     expires = datetime.now(timezone.utc) + expires_delta
     encode.update({"exp": expires})
     return jwt.encode(encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
-def get_current_user(token: Annotated[str, Depends(oauth2_bearer)]):
+async def get_current_user(token: Annotated[str, Depends(oauth2_bearer)]):
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload =  jwt.decode(token,SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get('sub')
         user_id: int = payload.get('id')
         user_role: str = payload.get('role')
         if username is None or user_id is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate user")
         return {'username': username, 'id': user_id, 'role': user_role}
     except JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate user")
@@ -92,5 +118,5 @@ async def login_for_access_token(db: db_dependency,
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
     
-    token = create_acces_token(user.username, user.id, user.role, timedelta(minutes=20))
+    token = create_access_token(user.username, user.id, user.role, timedelta(minutes=20))
     return {'access_token': token, 'token_type': 'bearer'}

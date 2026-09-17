@@ -22,7 +22,7 @@ async def read_all(user: user_dependency, db: db_dependency):
     return db.query(Todos).all()
 
 
-@router.delete("/todo/{todo_id}", status_code=status.HTTP_200_OK)
+@router.delete("/todo/{todo_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_todo(user: user_dependency, db: db_dependency, todo_id: int = Path(gt=0)):
     if user is None or user.get('role') != 'admin':
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication Failes, because you are not an admin")
