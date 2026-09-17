@@ -8,4 +8,5 @@ __pycache__/
 *.pyd
 
 *.db
-*.sqlite3
+*.sqlite3CLAUDE.md
+tips.md
